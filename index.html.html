@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vamos a separar sílabas</title>
+    <style>
+        /* 1. CONFIGURACIÓN DE FUENTE Y VARIABLES */
+        @font-face {
+            font-family: 'Escolar_N';
+            src: local('Escolar_N'), url('Escolar_N.TTF') format('truetype');
+        }
+
+        :root {
+            --primary: #FF9800;
+            --secondary: #03A9F4;
+            --success: #4CAF50;
+            --error: #F44336;
+            --bg-color: #E1F5FE;
+            --bar-color: #E91E63; /* Color de la barra separadora (Magenta) */
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Escolar_N', 'Comic Sans MS', 'Quicksand', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            text-align: center;
+        }
+
+        body.uppercase-mode {
+            text-transform: uppercase;
+        }
+
+        /* 2. ENCABEZADO Y CONTROLES SUPERIORES */
+        .top-bar {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            max-width: 800px;
+            margin-bottom: 20px;
+        }
+
+        .icon-btn {
+            background: #fff;
+            border: 3px solid var(--secondary);
+            border-radius: 15px;
+            padding: 10px 15px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 4px 0 var(--secondary);
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        .icon-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 var(--secondary);
+        }
+
+        h1 {
+            color: #FF5722;
+            font-size: clamp(2rem, 5vw, 4rem);
+            text-shadow: 2px 2px 0px white, 4px 4px 0px #FFCC80;
+            margin-bottom: 30px;
+        }
+
+        /* 3. ZONA DE CONTROLES */
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 40px;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        input[type="text"] {
+            font-family: inherit;
+            font-size: 1.5rem;
+            padding: 10px 20px;
+            border: 4px solid var(--secondary);
+            border-radius: 20px;
+            width: 250px;
+            text-align: center;
+            outline: none;
+        }
+
+        .btn {
+            font-family: inherit;
+            font-size: 1.5rem;
+            padding: 10px 25px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 6px 0 rgba(0,0,0,0.2);
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        .btn:active {
+            transform: translateY(6px);
+            box-shadow: 0 0 0 rgba(0,0,0,0.2);
+        }
+
+        .btn-generate { background-color: var(--primary); }
+        .btn-random { background-color: #9C27B0; }
+
+        /* 4. ÁREA DE JUEGO */
+        .play-area, .word-display-modal {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            background: white;
+            padding: 20px 40px;
+            border-radius: 30px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            border: 5px dashed #B3E5FC;
+        }
+
+        .play-area {
+            margin: 40px 0;
+            min-height: 120px;
+        }
+
+        .letter {
+            font-size: clamp(3rem, 8vw, 6rem);
+            font-weight: bold;
+            color: #333;
+        }
+
+        .gap {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            width: clamp(20px, 4vw, 40px);
+            height: clamp(40px, 8vw, 80px);
+            margin: 0 5px;
+            cursor: pointer;
+            border-radius: 10px;
+            font-size: clamp(3rem, 8vw, 6rem);
+            color: transparent;
+            transition: background 0.2s;
+        }
+
+        .play-area .gap:hover {
+            background-color: #FFF9C4;
+        }
+
+        .gap.cut {
+            color: var(--bar-color); /* Color de la barra vertical */
+            font-weight: 900;
+            text-shadow: 2px 2px 0px rgba(0,0,0,0.1);
+        }
+
+        .diptongo { color: var(--success); }
+        .hiato { color: var(--error); }
+
+        .shake {
+            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+            color: var(--error) !important;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-2px, 0, 0); }
+            20%, 80% { transform: translate3d(4px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-8px, 0, 0); }
+            40%, 60% { transform: translate3d(8px, 0, 0); }
+        }
+
+        /* 5. MENÚ MODAL */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .modal-overlay.active {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 30px;
+            text-align: center;
+            border: 8px solid var(--secondary);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+            max-width: 95%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .modal-content h2 {
+            font-size: 2.5rem;
+            color: #333;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+
+        .word-display-modal {
+            margin-bottom: 30px;
+            padding: 15px 30px;
+            background: #F1F8E9;
+            border-color: #C5E1A5;
+            transform: scale(0.8);
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            width: 100%;
+        }
+
+        .option-btn {
+            font-family: inherit;
+            background: #FFEB3B;
+            border: 4px solid #FBC02D;
+            border-radius: 20px;
+            font-size: 1.5rem;
+            padding: 15px;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #FBC02D;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: transform 0.1s;
+        }
+
+        .option-btn:active {
+            transform: translateY(6px);
+            box-shadow: 0 0 0 #FBC02D;
+        }
+
+        .option-number {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #E65100;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <button class="icon-btn" onclick="toggleFullscreen()" title="Pantalla Completa">📺</button>
+        <button class="icon-btn" onclick="toggleCase()" title="Mayúsculas / Minúsculas">Aa</button>
+    </div>
+
+    <h1>Vamos a separar sílabas</h1>
+
+    <div class="controls">
+        <input type="text" id="wordInput" placeholder="Escribe aquí..." autocomplete="off">
+        <button class="btn btn-generate" onclick="handleGenerate()">¡Generar!</button>
+        <button class="btn btn-random" onclick="handleRandom()">🎲 Aleatorio</button>
+    </div>
+
+    <div class="play-area" id="playArea">
+        </div>
+
+    <div class="modal-overlay" id="modal">
+        <div class="modal-content" id="modalContent">
+            <h2>¿Cuántas sílabas tiene?</h2>
+            
+            <div class="word-display-modal" id="wordDisplayModal"></div>
+
+            <div class="options-grid">
+                <button class="option-btn" onclick="checkSyllableCount(1)">
+                    <span class="option-number">1</span> Monosílaba
+                </button>
+                <button class="option-btn" onclick="checkSyllableCount(2)">
+                    <span class="option-number">2</span> Bisílaba
+                </button>
+                <button class="option-btn" onclick="checkSyllableCount(3)">
+                    <span class="option-number">3</span> Trisílaba
+                </button>
+                <button class="option-btn" onclick="checkSyllableCount(4)">
+                    <span class="option-number">4+</span> Polisílaba
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // BASE DE DATOS DE PALABRAS
+        const rawWords = "Loli, ala, Lola, ola, Lalo, Eloy, Leo, lee, Lulú, Alí, olía, lío, aula, lila, la, el. Apio, palo, pelo, pupa, pie, Epi, Pepa, papel, papá, lupa, pala, Lupe, papa, Paula, pupila, Pili, aúpa, pipa, pupa, pulpo, Pepe, pila, polo. Mamá, puma, momia, amo, miel, muela, pomelo, Pamela, lame, Mila, mula, paloma, mapa, mopa, limpia, olmo, Amelia, lema, Emilio, muy. Sol, mesa, sopa, oso, peso, sala, asa, suela, Luisa, sal, Luis, seis, Sami, paso, salsa, Susi, Elsa, amapolas, espuma, soso, sapo, pasas, pasea, suma, aseo, isla, suelo, Saúl, Elisa, siesta, es, soy, los, las. Pasta, moto, pito, tela, Tomás, seta, palomitas, Timoteo, tos, salto, patata, maleta, tila, Telma, alta, Tomi, tuesta, patito, tía, malito, Mateo, tiesto, Maite, té, pasteles, tomate, osito, maleta, topo, auto, tapa, lata, siete, potito, aleta, patio, pelota, muletas, está. Mano, uno, nena, nieto, Anselmo, peine, Luna, atún, Noel, molino, Natalia, nata, espina, leona, menta, mono, pantalón, Nino, pimiento, lunes, Noemí, Manuel, Ana, lana, mano, pino, piano, pan, tapón, melón, león, limón, puente, peón, antena, antes, santo, tiene, están, son. Dado, dedo, nudo, dama, miedo, lado, Adela, medusa, nido, dedal, espada, demonio, sandía, Daniel, dieta, Eladio, diadema, todo, Dámaso, Desi, Lidia, toldo, diamante, diana, diente, duende, tostada, espada, dálmata, indio, oído, de, desde, después. Foto, feo, familia, Fidel, sofá, filete, Sofía, fideos, falda, delfín, final, Adolfo, falta, teléfono, famoso, fuente, elefante, fantasma, mofeta, estufa, fino, Fátima, enfado, Felipe, fiesta, Fina, fondo, Alfonso. Helena, hilo, hada, hotel, humo, Holanda, helado, Haití, hiena, hola, hipo, hospital, almohada, hundido, hielo, Hipólito, hueso, hostal, heno, hipopótamo. Beso, bueno, sabio, bota, batido, Belén, baile, bola, bebé, abuela, libélula, botón, Fabio, bandido, labios, sábado, abeto, Basilio, búho, Benito, bufanda, bonita, nube, Belinda, bomba, autobús. Uva, veleta, avispa, vida, avión, David, ventana, huevo, Eva, nueve, violín, vaso, vestido, invitado, Vanesa, nuevo, violetas, avioneta, venda, valiente, nevado, Valentín, vela, viento, nieve, voy, van. Casa, queso, mosquito, cama, cacao, Paco, cueva, mecánico, duque, oca, colonia, Camila, cuna, cuenco, abanico, Lucas, camiseta, cómoda, esquimal, maqueta, camión, cometa, quema, camino, saco, foca, cola, Roque, bosque, café, cubano, caliente, banqueta, canoa, copa, quimono, cuento, coco, cuna, copa, cole, canasta, cadena, pico, camisa, candado, médico, con. Rey, risa, barco, reina, remo, rubí, Rebeca, Raúl, radio, rosa, ruleta, cantar, Raquel, comer, ramo, raqueta, orquesta, armonía, ratón, Reme, perro, marrón, carreta, sierra, susurro, tarro, Curro, urraca, turrón, barrer, carrito, Tierra, barranco, torre, turrón, rueda, tarta, cuaderno, hierro, burro, correo, mar, ir. Cara, pera, pirata, arena, loro, caracol, lámpara, mariquita, tesoro, madera, Sara, batidora, Dora, iris, mariposa, bandera, caramelo, piruleta, morado, coral, Mariano, marinero, colorea, feria, raro, salero, caracol, lámpara, escalera, dinosaurio, dinero, minero, ahora. Pozo, mazo, zorro, manzana, Zoe, zumo, feliz, zapato, zanahoria, arroz, pez, calabaza, Camila, lápiz, azul, cabeza, Lorenzo, azúcar, balanza, forzudo, pizarra, cazador, Zacarías, taza, cien, pececito, cerdo, ciruela, cine, Celia, policía, lince, circo, racimo, Rocío, cero, azucenas, pincel, maceta, calcetines, cincuenta, cocinero, cinco, César, receta, macedonia, cereales, albornoz, peonza, cerca. Gato, gafas, regalo, mago, Guille, guisantes, gusano, pegamento, Miguel, águila, gas, guerra, guantes, goma, hormiga, guiso, guepardo, gasolina, guitarra, golosinas, algodón, amigo, guapa, aguacate, Águeda, gota, agua, pegatina, gorrión, garra, gorra, fuego, espaguetis, guisantes, gusto. Vergüenza, ungüento, pingüino, piragüista, paragüero, desagüe, antigüedad, lengüeta, agüita. Ángel, gigante, genio, girasol, gel, gente, página, egipcio, magia, recogedor, gemelos, gimnasio, virgen, geranio, colegio, Gema, agenda, gelatina, gitano, vigilante, geólogo, religión, tecnología, alergia, digital, gentil, generoso, zoológico, giro. España, año, sueño, cigüeña, pedigüeño, niña, baño, ñu, leñador, compañía, riñón, cuñado, Íñigo, mañana, guiño, piña, rebaño, araña, buñuelos, castaña, caña, muñeca, bañera, albañil, montaña, castañuelas, uña, pestañas, pañuelo, señor, dueño, regañar. Jirafa, ojos, conejo, jaula, reloj, tijeras, Jaime, hoja, Jesús, juguete, Juan, rojo, José, dibujo, oveja, naranja, cajón, jamón, tejado, pijama, juego, hijo, lagartija, pájaro, mujer, caja, reja, lija, pajita, jardín, jabalí, lejano, abeja, lejos, junto, jilguero, espejo, jersey, judías. Silla, anillo, bellota, caballo, camello, sello, paella, ballena, ardilla, Guille, cepillo, llorar, bocadillo, tortilla, llave, bolsillo, tobillo, toalla, valla, pandilla, gallo, gallina, galleta, amarillo, papilla, llover, papilla, avellanas, apellido, muelle, castillo, pastilla, lluvia, valle, servilleta, campanilla, allí, botella, medalla, caballero, martillo, billete, casillero. Yo, rayo, yogur, payaso, joyas, ayer, yoga, mayor, ayuntamiento, yate, arroyo, yoyó, oye, hoyo, yema, desayuno, yegua, ayuda, mayo, Yolanda, raya, reyes, yunque, bayeta, apoyo, mayonesa, Yeray, yaya. Mochila, estuche, chaqueta, ocho, chapa, chica, chuleta, ducha, mucho, noche, leche, chino, chocolate, chimenea, bicho, charco, champiñón, chupete, corcho, Arancha, churros, cuchara, cuchillo, escucho, techo, hacha, Chema, Conchi, Melchor, chupar, hucha, Pinocho, coche, mapache, champú, chincheta, salchicha, muchacho, chucho. Taxi, taxista, xilófono, saxofón, extintor, boxeo, excursión, máximo, texto, éxito, axila, Félix, exterior, Auxi, examen, auxilio, experimento, tóxico, exótico, expulsión, hexágono, excelente, oxígeno, fax, sexto, experto, galaxia. Bikini, kárate, koala, kilo, kétchup, Katy, kikos, vikingo, parking, Tokio, Kenia, karateka, anorak. Kiwi, waterpolo, wifi, sándwich, windsurf, webcam, walkman, hawaiano, Walter, Wanda, web. premio, primero, prueba, proyector, exprimidor, producto, precio, compra, pregunta, primavera, provincia, promesa, pradera, problema, primo, pluma, planeta, soplido, plástico, explosión, plaza, plato, pleito, ejemplo, diploma, aplausos, plumero, cumpleaños, plastilina, plátano, trompeta, truco, trapo, triángulo, maestro, metro, trampa, monstruo, tren, trigo, cuatro, tractor, trozo, trabajo, trece, rastrillo, triste, dragón, piedra, madre, cuadrado, madrugar, Rodrigo, padrino, ladrillo, vidrio, cuadro, Pedro, ladrón, Alejandro, drama, dromedario, refresco, frase, fregona, freno, fruta, resfriado, fresa, frasco, frigorífico, disfraz, frente, cofre, frío, fregadero, flan, flor, flauta, flecha, flamenco, flotador, coliflor, flexo, camuflaje, flequillo, flojo, flaco, moflete, libro, brocha, sombra, culebra, abridor, fiebre, hambre, broma, Bruno, brazo, cebra, alfombra, abrigo, bruja, sombrero, cerebro, brújula, sombrilla, brazo, mueble, bloque, niebla, blusa, pueblo, cable, ombligo, público, biblioteca, diablo, nublado, tableta, impermeable, Pablo, cráter, crudo, Cristina, cromo, cráneo, crucero, crema, croqueta, microondas, cruz, secreto, escribir, recreo, cristal, Crispín, clavel, bicicleta, clave, cliente, ciclo, Clara, clip, ancla, clarinete, cloro, club, clase, clínica, Clotilde, ciclón, Clementina, claxon, Claudio, chicle, chanclas, tigre, grulla, bolígrafo, gracias, vinagre, cangrejo, negro, gritos, grúa, granizo, lágrima, peligro, grasa, ogro, granja, grifo, programa, grillo, Grecia, esgrima, agricultor, Granada, granizada, crucigrama, iglú, iglesia, regla, inglés, siglo, arreglo, renglón, globo, regleta, glotona, Gladis, jeroglífico, glorieta, jungla, gladiador, gloria, gluten, glaciar, glucosa, tinglado.";
+        
+        const wordDictionary = rawWords.replace(/[\.\n]/g, ' ').split(/[\s,]+/).filter(w => w.length > 0);
+
+        // SISTEMA DE AUDIO
+        let audioCtx;
+        function initAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        function playSound(type) {
+            initAudio();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === 'success') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1046.5, audioCtx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.5);
+            } else if (type === 'pop') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.1);
+            } else if (type === 'error') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.3);
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.3);
+            }
+        }
+
+        // ESTADO DEL JUEGO
+        let currentSyllablesCount = 0;
+        let correctGapsIndices = [];
+        let foundGaps = [];
+
+        // NUEVO MOTOR DE SILABEO GRAMATICAL AVANZADO
+        const allVowels = "aeiouáéíóúüAEOÁÉÓÍÚÜ";
+
+        function getVowelColorClass(word, index) {
+            if (!allVowels.includes(word[index])) return "";
+            
+            let start = index, end = index;
+            while (start > 0 && allVowels.includes(word[start-1])) start--;
+            while (end < word.length - 1 && allVowels.includes(word[end+1])) end++;
+            
+            let cluster = word.substring(start, end+1).toLowerCase();
+            
+            if (cluster.length > 1) {
+                if (/([aeoáéó][aeoáéó]|[aeoáéó][íú]|[íú][aeoáéó])/.test(cluster)) {
+                    return "hiato";
+                } else {
+                    return "diptongo";
+                }
+            }
+            return "";
+        }
+
+        function divideSyllables(word) {
+            let w = word.toLowerCase();
+            
+            // 1. Separar hiatos
+            w = w.replace(/([aeoáéó])([aeoáéó])/g, "$1-$2");
+            w = w.replace(/([aeoáéó])([íú])/g, "$1-$2");
+            w = w.replace(/([íú])([aeoáéó])/g, "$1-$2");
+            w = w.replace(/([íú])([íú])/g, "$1-$2");
+            w = w.replace(/([aeoáéó])([aeoáéó])/g, "$1-$2"); // Repaso por si hay 3
+
+            // 2. Mapear grupos inseparables a caracteres únicos temporales
+            w = w.replace(/ch/g, '0');
+            w = w.replace(/ll/g, '1');
+            w = w.replace(/rr/g, '2');
+            w = w.replace(/pr/g, '3');
+            w = w.replace(/br/g, '4');
+            w = w.replace(/tr/g, '5');
+            w = w.replace(/dr/g, '6');
+            w = w.replace(/cr/g, '7');
+            w = w.replace(/gr/g, '8');
+            w = w.replace(/fr/g, '9');
+            w = w.replace(/pl/g, '!');
+            w = w.replace(/bl/g, '@');
+            w = w.replace(/cl/g, '#');
+            w = w.replace(/gl/g, '$');
+            w = w.replace(/fl/g, '%');
+            w = w.replace(/qu/g, '&');
+            w = w.replace(/gu([eiéí])/g, '*$1'); // gu es inseparable solo ante e, i
+
+            const V = "[aeiouáéíóúü]";
+            const C = "[bcdfghjklmnñpqrstvwxyz0123456789!@#$%&*]";
+
+            // 3. Aplicar reglas universales de separación de consonantes
+            // Cuatro consonantes: VCC-CCV
+            let reVCCCCV = new RegExp(`(${V})(${C})(${C})(${C})(${C})(${V})`, 'g');
+            w = w.replace(reVCCCCV, "$1$2-$3$4$5$6");
+
+            // Tres consonantes: VCC-CV
+            let reVCCCV = new RegExp(`(${V})(${C})(${C})(${C})(${V})`, 'g');
+            w = w.replace(reVCCCV, "$1$2-$3$4$5");
+            w = w.replace(reVCCCV, "$1$2-$3$4$5");
+
+            // Dos consonantes: VC-CV
+            let reVCCV = new RegExp(`(${V})(${C})(${C})(${V})`, 'g');
+            w = w.replace(reVCCV, "$1$2-$3$4");
+            w = w.replace(reVCCV, "$1$2-$3$4");
+
+            // Una consonante: V-CV
+            let reVCV = new RegExp(`(${V})(${C})(${V})`, 'g');
+            w = w.replace(reVCV, "$1-$2$3");
+            w = w.replace(reVCV, "$1-$2$3");
+
+            // 4. Restaurar grupos inseparables
+            w = w.replace(/0/g, 'ch');
+            w = w.replace(/1/g, 'll');
+            w = w.replace(/2/g, 'rr');
+            w = w.replace(/3/g, 'pr');
+            w = w.replace(/4/g, 'br');
+            w = w.replace(/5/g, 'tr');
+            w = w.replace(/6/g, 'dr');
+            w = w.replace(/7/g, 'cr');
+            w = w.replace(/8/g, 'gr');
+            w = w.replace(/9/g, 'fr');
+            w = w.replace(/!/g, 'pl');
+            w = w.replace(/@/g, 'bl');
+            w = w.replace(/#/g, 'cl');
+            w = w.replace(/\$/g, 'gl');
+            w = w.replace(/%/g, 'fl');
+            w = w.replace(/&/g, 'qu');
+            w = w.replace(/\*/g, 'gu');
+
+            w = w.replace(/-+/g, '-'); // Limpieza de guiones dobles
+            
+            return w.split('-');
+        }
+
+        // LÓGICA DE INTERFAZ
+        function startGame(word) {
+            if (!word.trim()) return;
+            initAudio();
+            document.getElementById('wordInput').value = "";
+            const playArea = document.getElementById('playArea');
+            playArea.innerHTML = "";
+            
+            const syllables = divideSyllables(word);
+            currentSyllablesCount = syllables.length;
+            correctGapsIndices = [];
+            foundGaps = [];
+
+            let acc = 0;
+            for (let i = 0; i < syllables.length - 1; i++) {
+                acc += syllables[i].length;
+                correctGapsIndices.push(acc - 1);
+            }
+
+            for (let i = 0; i < word.length; i++) {
+                const span = document.createElement('span');
+                span.className = `letter ${getVowelColorClass(word, i)}`;
+                span.innerText = word[i];
+                playArea.appendChild(span);
+
+                if (i < word.length - 1) {
+                    const gap = document.createElement('div');
+                    gap.className = 'gap';
+                    gap.dataset.index = i;
+                    gap.onclick = () => handleGapClick(gap, i);
+                    playArea.appendChild(gap);
+                }
+            }
+
+            if (correctGapsIndices.length === 0) {
+                setTimeout(() => {
+                    playSound('success');
+                    showModal();
+                }, 1500);
+            }
+        }
+
+        function handleGapClick(gapElement, index) {
+            if (foundGaps.includes(index)) return;
+
+            if (correctGapsIndices.includes(index)) {
+                gapElement.innerText = "|"; // <--- INYECCIÓN EXPLÍCITA DE LA BARRA VERTICAL
+                gapElement.classList.add('cut');
+                foundGaps.push(index);
+                playSound('pop');
+
+                if (foundGaps.length === correctGapsIndices.length) {
+                    setTimeout(() => {
+                        playSound('success');
+                        showModal();
+                    }, 500);
+                }
+            } else {
+                playSound('error');
+                gapElement.classList.add('shake');
+                setTimeout(() => gapElement.classList.remove('shake'), 400);
+            }
+        }
+
+        function handleGenerate() {
+            const word = document.getElementById('wordInput').value;
+            startGame(word);
+        }
+
+        function handleRandom() {
+            const randomWord = wordDictionary[Math.floor(Math.random() * wordDictionary.length)];
+            startGame(randomWord);
+        }
+
+        function showModal() {
+            // Clonamos la palabra separada (con sus barras verticales ya visibles) al modal
+            const modalWordDisplay = document.getElementById('wordDisplayModal');
+            modalWordDisplay.innerHTML = document.getElementById('playArea').innerHTML;
+            
+            // Quitamos la interacción a la copia
+            const clonedGaps = modalWordDisplay.querySelectorAll('.gap');
+            clonedGaps.forEach(g => g.onclick = null);
+
+            document.getElementById('modal').classList.add('active');
+        }
+
+        function checkSyllableCount(selected) {
+            let isCorrect = false;
+            if (selected === 4 && currentSyllablesCount >= 4) isCorrect = true;
+            else if (selected === currentSyllablesCount) isCorrect = true;
+
+            if (isCorrect) {
+                playSound('success');
+                document.getElementById('modal').classList.remove('active');
+                document.getElementById('playArea').innerHTML = "<h1>¡Súper bien! 🌟</h1>";
+            } else {
+                playSound('error');
+                const modalContent = document.getElementById('modalContent');
+                modalContent.classList.add('shake');
+                setTimeout(() => modalContent.classList.remove('shake'), 400);
+            }
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log(`Error intentando entrar en pantalla completa: ${err.message}`);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        function toggleCase() {
+            document.body.classList.toggle('uppercase-mode');
+        }
+
+        document.getElementById('wordInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') handleGenerate();
+        });
+
+    </script>
+</body>
+</html>
